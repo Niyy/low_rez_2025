@@ -1,0 +1,8 @@
+[
+{
+  "directory": "C:/Users/meyer/repos/low_rez_jam_2025/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE  @CMakeFiles/low_rez.dir/includes_CXX.rsp -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\low_rez.dir\\src\\main.cpp.obj -c C:\\Users\\meyer\\repos\\low_rez_jam_2025\\src\\main.cpp",
+  "file": "C:/Users/meyer/repos/low_rez_jam_2025/src/main.cpp",
+  "output": "CMakeFiles/low_rez.dir/src/main.cpp.obj"
+}
+]
