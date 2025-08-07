@@ -17,11 +17,11 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 #endif()
 
 # SDL3 configuration
-set(CMAKE_PREFIX_PATH "C:/SDL3")
+set(CMAKE_PREFIX_PATH "C:/Program Files (x86)/SDL3")
 find_package(SDL3 REQUIRED CONFIG)
 
-# GLM
-find_package(glm CONFIG REQUIRED)
+# GLM - put back when you start using
+# find_package(glm CONFIG REQUIRED)
 
 # Add source files
 file(GLOB_RECURSE SOURCES 
@@ -34,7 +34,7 @@ target_link_libraries(
     low_rez
     PRIVATE 
     SDL3::SDL3
-    glm::glm
+#    glm::glm
 )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -47,7 +47,7 @@ target_include_directories(
 )
 
 # Copy SDL3.dll to output directory
-file(GLOB SDL3_DLLS "C:/SDL3/bin/*.dll")
+file(GLOB SDL3_DLLS "C:/Program Files (x86)/SDL3/*.dll")
 foreach(DLL ${SDL3_DLLS})
     add_custom_command(TARGET low_rez POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
