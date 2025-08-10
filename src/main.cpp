@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
+#include <map>
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
@@ -12,6 +13,7 @@
 
 using std::cout;
 using std::endl;
+using std::map;
 
 
 int g_width = 1920 / 2;
