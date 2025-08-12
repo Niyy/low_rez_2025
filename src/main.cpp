@@ -11,7 +11,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_mouse.h>
-//#include <SDL3/SDL_render.h>
+#include <SDL3_image/SDL_image.h>
 #include "game.h"
 
 using std::cout;
@@ -24,6 +24,7 @@ const int TEXTURE_SIZE = 64;
 const int g_width = 1920 / 2;
 const int g_height = 1080 / 2;
 static SDL_Texture *texture = NULL;
+static SDL_Texture *texture_01 = NULL;
 Game g_game;
 SDL_Window* g_window;
 SDL_Renderer* g_renderer;
@@ -60,8 +61,17 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
         SDL_Log("Couldn't create streaming texture: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
+    texture_01 = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
+    if (!texture_01) {
+        SDL_Log("Couldn't create streaming texture: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
     // Set the texture scale mode to nearest
     if (!SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST)) {
+        // Handle error
+        SDL_Log("Failed to set texture scale mode: %s", SDL_GetError());
+    }
+    if (!SDL_SetTextureScaleMode(texture_01, SDL_SCALEMODE_NEAREST)) {
         // Handle error
         SDL_Log("Failed to set texture scale mode: %s", SDL_GetError());
     }
@@ -76,13 +86,16 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     int offset_y = (g_height / 2) - (g_game.grid_step * (g_game.grid_h / 2));
     SDL_FRect l_rect;
     SDL_Time ticks;
-    SDL_FRect dst_rect;
+    SDL_FRect dst_rect, src_rect;
     const Uint64 now = SDL_GetTicks();
     SDL_Surface *surface = NULL;
+    SDL_Texture *texture_02 = IMG_LoadTexture(g_renderer, "assets/cursor.png");
+    SDL_SetTextureScaleMode(texture_02, SDL_SCALEMODE_NEAREST);
 
     /* we'll have some color move around over a few seconds. */
     const float direction = ((now % 2000) >= 1000) ? 1.0f : -1.0f;
     const float scale = ((float) (((int) (now % 1000)) - 500) / 500.0f) * direction;
+    SDL_GetMouseState(&l_rect.x, &l_rect.y);
 
     /* To update a streaming texture, you need to lock it first. This gets you access to the pixels.
        Note that this is considered a _write-only_ operation: the buffer you get from locking
@@ -94,19 +107,24 @@ SDL_AppResult SDL_AppIterate(void *appstate)
        letting us use the surface drawing functions instead of lighting up individual pixels. */
     if (SDL_LockTextureToSurface(texture, NULL, &surface)) {
         SDL_Rect r;
-        SDL_FillSurfaceRect(surface, NULL, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 0, 0, 0));  /* make the whole surface black */
+        SDL_FillSurfaceRect(surface, NULL, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 255, 255, 255));
         r.w = TEXTURE_SIZE;
         r.h = TEXTURE_SIZE / 10;
         r.x = 0;
         r.y = (int) (((float) (TEXTURE_SIZE - r.h)) * ((scale + 1.0f) / 2.0f));
         SDL_FillSurfaceRect(surface, &r, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 0, 255, 0));  /* make a strip of the surface green */
-        r.w = 1;
-        r.h = 1;
-        r.x = 2;
-        r.y = 2;
-        SDL_FillSurfaceRect(surface, &r, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 255, 0, 0));
         SDL_UnlockTexture(texture);  /* upload the changes (and frees the temporary surface)! */
     }
+    if (SDL_LockTextureToSurface(texture_01, NULL, &surface)) {
+        SDL_Rect r;
+        r.w = 10;
+        r.h = 10;
+        r.x = 0;
+        r.y = 0;
+        SDL_FillSurfaceRect(surface, &r, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 255, 0, 0));
+        SDL_UnlockTexture(texture_01);  /* upload the changes (and frees the temporary surface)! */
+    }
+
     
 
     /* as you can see from this, rendering draws over whatever was drawn before it. */
@@ -121,6 +139,12 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     dst_rect.y = 5;
     dst_rect.w = dst_rect.h = g_height - 10;
     SDL_RenderTexture(g_renderer, texture, NULL, &dst_rect);
+    SDL_RenderTexture(g_renderer, texture_01, NULL, &dst_rect);
+    dst_rect.x = ((int)((l_rect.x - dst_rect.w) / (dst_rect.w / 64)));
+    dst_rect.y = ((int)(l_rect.y / dst_rect.h));
+    cout << dst_rect.x << endl;
+    dst_rect.w = dst_rect.h = (g_height - 10) / 8;
+    SDL_RenderTexture(g_renderer, texture_02, NULL, &dst_rect);
 //    if(!SDL_GetCurrentTime(&ticks))
 //    {
 //        cout << "ERROR::COULD_NOT_GET_TIME" << endl;
@@ -174,6 +198,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 //    SDL_RenderRect(g_renderer, &l_rect);
 
     SDL_RenderPresent(g_renderer);
+    SDL_DestroyTexture(texture_02);
     return SDL_APP_CONTINUE;
 }
 
@@ -193,4 +218,5 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     SDL_DestroyRenderer(g_renderer);
     SDL_DestroyWindow(g_window);
     SDL_DestroyTexture(texture);
+    SDL_DestroyTexture(texture_01);
 }
