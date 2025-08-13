@@ -11,8 +11,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_MAKE_PROGRAM "C:/ProgramData/mingw64/mingw64/bin/mingw32-make.exe")
 #set(CMAKE_RC_COMPILER "C:/ProgramData/mingw64/mingw64/bin/windres.exe")
 
-
-
 # Output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")

@@ -23,6 +23,7 @@ using std::string;
 const int TEXTURE_SIZE = 64;
 const int g_width = 1920 / 2;
 const int g_height = 1080 / 2;
+const int g_viewport = (g_height - 10) / 64;
 static SDL_Texture *texture = NULL;
 static SDL_Texture *texture_01 = NULL;
 Game g_game;
@@ -88,9 +89,11 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_Time ticks;
     SDL_FRect dst_rect, src_rect;
     const Uint64 now = SDL_GetTicks();
-    SDL_Surface *surface = NULL;
+    SDL_Surface *surface = nullptr;
     SDL_Texture *texture_02 = IMG_LoadTexture(g_renderer, "assets/cursor.png");
+    SDL_Texture *dst_texture = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, TEXTURE_SIZE * 2, TEXTURE_SIZE * 2);    
     SDL_SetTextureScaleMode(texture_02, SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(dst_texture, SDL_SCALEMODE_NEAREST);
 
     /* we'll have some color move around over a few seconds. */
     const float direction = ((now % 2000) >= 1000) ? 1.0f : -1.0f;
@@ -124,7 +127,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         SDL_FillSurfaceRect(surface, &r, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 255, 0, 0));
         SDL_UnlockTexture(texture_01);  /* upload the changes (and frees the temporary surface)! */
     }
-
     
 
     /* as you can see from this, rendering draws over whatever was drawn before it. */
@@ -135,16 +137,30 @@ SDL_AppResult SDL_AppIterate(void *appstate)
        stamp, there isn't a limit to the number of times you can draw with it. */
 
     /* Center this one. It'll draw the latest version of the texture we drew while it was locked. */
-    dst_rect.x = g_width * 0.25f;
-    dst_rect.y = 5;
-    dst_rect.w = dst_rect.h = g_height - 10;
+    if(!SDL_SetRenderTarget(g_renderer, dst_texture))
+    {
+        cout << "ERROR::SET_RENDER_TARGET::" << SDL_GetError() << endl;
+    }
+    dst_rect.x = 0;
+    dst_rect.y = 0;
+    dst_rect.w = dst_rect.h = TEXTURE_SIZE;
     SDL_RenderTexture(g_renderer, texture, NULL, &dst_rect);
     SDL_RenderTexture(g_renderer, texture_01, NULL, &dst_rect);
-    dst_rect.x = ((int)((l_rect.x - dst_rect.w) / (dst_rect.w / 64)));
-    dst_rect.y = ((int)(l_rect.y / dst_rect.h));
-    cout << dst_rect.x << endl;
-    dst_rect.w = dst_rect.h = (g_height - 10) / 8;
+    dst_rect.x = 65;
+    dst_rect.w = dst_rect.h = 8;
     SDL_RenderTexture(g_renderer, texture_02, NULL, &dst_rect);
+//    dst_rect.x = ((int)((l_rect.x - dst_rect.x) / g_viewport) * g_viewport) + dst_rect.x;
+//    dst_rect.y = ((int)((l_rect.y - dst_rect.y) / g_viewport) * g_viewport) + dst_rect.y;
+//    cout << dst_rect.x << endl;
+//    dst_rect.w = dst_rect.h = (g_height - 10) / 8;
+//    SDL_RenderTexture(g_renderer, texture_02, NULL, &dst_rect);
+
+    dst_rect.x = dst_rect.y = 0;
+    dst_rect.w = dst_rect.h = g_height;
+    src_rect.x = 8;
+    src_rect.w = src_rect.h = TEXTURE_SIZE;
+    SDL_SetRenderTarget(g_renderer, NULL);
+    SDL_RenderTexture(g_renderer, dst_texture, &src_rect, &dst_rect);
 //    if(!SDL_GetCurrentTime(&ticks))
 //    {
 //        cout << "ERROR::COULD_NOT_GET_TIME" << endl;
@@ -199,6 +215,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     SDL_RenderPresent(g_renderer);
     SDL_DestroyTexture(texture_02);
+    SDL_DestroyTexture(dst_texture);
     return SDL_APP_CONTINUE;
 }
 
