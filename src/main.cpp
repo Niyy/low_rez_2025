@@ -19,7 +19,7 @@ using std::endl;
 using std::map;
 using std::string;
 
-
+// Definitions
 const int TEXTURE_SIZE = 64;
 const int g_width = 1920 / 2;
 const int g_height = 1080 / 2;
@@ -30,14 +30,15 @@ static SDL_Texture *texture_01 = NULL;
 Game g_game;
 SDL_Window* g_window;
 SDL_Renderer* g_renderer;
+static map<string, SDL_Texture*> g_textures;
 
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv);
 SDL_AppResult SDL_AppIterate(void *appstate);
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event);
 void SDL_AppQuit(void *appstate, SDL_AppResult result);
-
-
+void load_textures();
+void destroy_textures();
 void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect);
 
 
@@ -80,6 +81,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
         // Handle error
         SDL_Log("Failed to set texture scale mode: %s", SDL_GetError());
     }
+
+    load_textures();
 
     return SDL_APP_CONTINUE;
 }
@@ -154,8 +157,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderTexture(g_renderer, texture_01, NULL, &dst_rect);
     dst_rect.x = l_rect.x - 3;
     dst_rect.y = l_rect.y - 3;
-    dst_rect.w = dst_rect.h = 7;
-    SDL_RenderTexture(g_renderer, texture_02, NULL, &dst_rect);
+    dst_rect.w = dst_rect.h = g_textures["cursor"]->w;
+    SDL_RenderTexture(g_renderer, g_textures["cursor"], NULL, &dst_rect);
 //    dst_rect.x = ((int)((l_rect.x - dst_rect.x) / g_viewport) * g_viewport) + dst_rect.x;
 //    dst_rect.y = ((int)((l_rect.y - dst_rect.y) / g_viewport) * g_viewport) + dst_rect.y;
 //    cout << dst_rect.x << endl;
@@ -168,57 +171,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     src_rect.w = src_rect.h = TEXTURE_SIZE;
     SDL_SetRenderTarget(g_renderer, NULL);
     SDL_RenderTexture(g_renderer, dst_texture, &src_rect, &dst_rect);
-//    if(!SDL_GetCurrentTime(&ticks))
-//    {
-//        cout << "ERROR::COULD_NOT_GET_TIME" << endl;
-//        return SDL_APP_FAILURE;
-//    }
-//    
-//    {
-//        // handle mouse rect
-//        l_rect.w = 10;
-//        l_rect.h = 10;
-//
-//        SDL_GetMouseState(&l_rect.x, &l_rect.y);
-//
-//        l_rect.x -= (float)(l_rect.w * 0.5f);
-//        l_rect.y -= (float)(l_rect.h * 0.5f);
-//    }
-//
-//    SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, 255);
-//    SDL_RenderClear(g_renderer);
-//    SDL_SetRenderDrawColor(g_renderer, 0, 255, 0, 255);
-//
-//    for(int x_index = 0; x_index < g_game.grid_h; x_index++)
-//    {            
-//        for(int y_index = 0; y_index < g_game.grid_w; y_index++)
-//        {
-//            bool bound_x = false;
-//            bool bound_y = false;
-//            SDL_FRect cur_rect;
-//
-//            cur_rect.x = (x_index * g_game.grid_step) + offset_x;
-//            cur_rect.y = (y_index * g_game.grid_step) + offset_y;
-//            cur_rect.w = g_game.grid_step;
-//            cur_rect.h = g_game.grid_step;
-//
-//            bound_x = 
-//                cur_rect.x < l_rect.x && 
-//                (cur_rect.x + g_game.grid_step) >= l_rect.x;
-//            bound_y = 
-//                cur_rect.y < l_rect.y && 
-//                (cur_rect.y + g_game.grid_step) >= l_rect.y;
-//
-//            if(bound_x && bound_y)
-//            {
-//                cur_rect.y -= 8;
-//            }
-//
-//            SDL_RenderRect(g_renderer, &cur_rect);
-//        }
-//    }
-//
-//    SDL_RenderRect(g_renderer, &l_rect);
 
     SDL_RenderPresent(g_renderer);
     SDL_DestroyTexture(texture_02);
@@ -239,10 +191,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
+    cout << "cleaning up" << endl;
     SDL_DestroyRenderer(g_renderer);
     SDL_DestroyWindow(g_window);
     SDL_DestroyTexture(texture);
     SDL_DestroyTexture(texture_01);
+    destroy_textures();
 }
 
 
@@ -250,4 +204,22 @@ void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect)
 {
     *x = ((int)((*x - viewport_rect->x) / g_viewport_step));
     *y = ((int)((*y - viewport_rect->y) / g_viewport_step));
+}
+
+
+void load_textures()
+{
+    g_textures["cursor"] = IMG_LoadTexture(g_renderer, "assets/cursor.png");
+    g_textures["crate"] = IMG_LoadTexture(g_renderer, "assets/crate.png");
+    g_textures["actor"] = IMG_LoadTexture(g_renderer, "assets/actor.png");
+}
+
+
+void destroy_textures()
+{
+    map<string, SDL_Texture*>::iterator it;
+    for (it = g_textures.begin(); it != g_textures.end(); ++it)
+    {
+        SDL_DestroyTexture(it->second);
+    }
 }
