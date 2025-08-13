@@ -23,7 +23,8 @@ using std::string;
 const int TEXTURE_SIZE = 64;
 const int g_width = 1920 / 2;
 const int g_height = 1080 / 2;
-const int g_viewport = (g_height - 10) / 64;
+const int g_viewport = 448;
+const int g_viewport_step = g_viewport / 64;
 static SDL_Texture *texture = NULL;
 static SDL_Texture *texture_01 = NULL;
 Game g_game;
@@ -35,6 +36,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv);
 SDL_AppResult SDL_AppIterate(void *appstate);
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event);
 void SDL_AppQuit(void *appstate, SDL_AppResult result);
+
+
+void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect);
 
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) 
@@ -98,7 +102,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     /* we'll have some color move around over a few seconds. */
     const float direction = ((now % 2000) >= 1000) ? 1.0f : -1.0f;
     const float scale = ((float) (((int) (now % 1000)) - 500) / 500.0f) * direction;
+
     SDL_GetMouseState(&l_rect.x, &l_rect.y);
+    screen_to_world(&l_rect.x, &l_rect.y, &dst_rect);
 
     /* To update a streaming texture, you need to lock it first. This gets you access to the pixels.
        Note that this is considered a _write-only_ operation: the buffer you get from locking
@@ -110,7 +116,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
        letting us use the surface drawing functions instead of lighting up individual pixels. */
     if (SDL_LockTextureToSurface(texture, NULL, &surface)) {
         SDL_Rect r;
-        SDL_FillSurfaceRect(surface, NULL, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 255, 255, 255));
+        SDL_FillSurfaceRect(surface, NULL, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 0, 0, 0));
         r.w = TEXTURE_SIZE;
         r.h = TEXTURE_SIZE / 10;
         r.x = 0;
@@ -146,8 +152,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     dst_rect.w = dst_rect.h = TEXTURE_SIZE;
     SDL_RenderTexture(g_renderer, texture, NULL, &dst_rect);
     SDL_RenderTexture(g_renderer, texture_01, NULL, &dst_rect);
-    dst_rect.x = 65;
-    dst_rect.w = dst_rect.h = 8;
+    dst_rect.x = l_rect.x - 3;
+    dst_rect.y = l_rect.y - 3;
+    dst_rect.w = dst_rect.h = 7;
     SDL_RenderTexture(g_renderer, texture_02, NULL, &dst_rect);
 //    dst_rect.x = ((int)((l_rect.x - dst_rect.x) / g_viewport) * g_viewport) + dst_rect.x;
 //    dst_rect.y = ((int)((l_rect.y - dst_rect.y) / g_viewport) * g_viewport) + dst_rect.y;
@@ -156,8 +163,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 //    SDL_RenderTexture(g_renderer, texture_02, NULL, &dst_rect);
 
     dst_rect.x = dst_rect.y = 0;
-    dst_rect.w = dst_rect.h = g_height;
-    src_rect.x = 8;
+    dst_rect.w = dst_rect.h = g_viewport;
+    src_rect.x = 0;
     src_rect.w = src_rect.h = TEXTURE_SIZE;
     SDL_SetRenderTarget(g_renderer, NULL);
     SDL_RenderTexture(g_renderer, dst_texture, &src_rect, &dst_rect);
@@ -236,4 +243,11 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     SDL_DestroyWindow(g_window);
     SDL_DestroyTexture(texture);
     SDL_DestroyTexture(texture_01);
+}
+
+
+void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect)
+{
+    *x = ((int)((*x - viewport_rect->x) / g_viewport_step));
+    *y = ((int)((*y - viewport_rect->y) / g_viewport_step));
 }
