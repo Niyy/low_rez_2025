@@ -12,7 +12,7 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_mouse.h>
 #include <SDL3_image/SDL_image.h>
-#include "game.h"
+#include "game.hpp"
 
 using std::cout;
 using std::endl;

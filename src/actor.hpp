@@ -1,4 +1,4 @@
-#include "object.h"
+#include "object.hpp"
 
 
 class Actor : protected Object

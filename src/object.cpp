@@ -1,4 +1,4 @@
-#include "object.h"
+#include "object.hpp"
 
 
 SDL_FRect Object::get_rect()
