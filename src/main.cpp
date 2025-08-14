@@ -48,6 +48,7 @@ static map<string, SDL_Texture*> g_textures;
 static map<tuple<int, int>, Object> g_objects;
 static int g_map_tile[2];
 static SDL_FRect g_viewport_rect;
+static SDL_FRect g_ui_rect;
 static Game_States g_state = BUILD;
 static Mouse g_mouse;
 
@@ -105,7 +106,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
 
     load_textures();
 
-    g_viewport_rect.w = g_viewport_rect.h = TEXTURE_SIZE;
+    g_ui_rect.h =
+    g_ui_rect.w = 
+    g_viewport_rect.w = 
+    g_viewport_rect.h = TEXTURE_SIZE;
     g_map_tile[0] = TEXTURE_SIZE * 2;
     g_map_tile[1] = TEXTURE_SIZE * 2;
 
@@ -181,6 +185,12 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     dst_rect.y = g_mouse.y;
     dst_rect.w = dst_rect.h = g_textures["cursor"]->w;
     SDL_RenderTexture(g_renderer, g_textures["cursor"], NULL, &dst_rect);
+
+    dst_rect.x = g_viewport_rect.x;
+    dst_rect.y = g_viewport_rect.y;
+    dst_rect.w = g_textures["ui_commandbar"]->w;
+    dst_rect.h = g_textures["ui_commandbar"]->h;
+    SDL_RenderTexture(g_renderer, g_textures["ui_commandbar"], NULL, &dst_rect); 
 
     // Render the render target ooooo!
     dst_rect.x = dst_rect.y = 0;
@@ -328,6 +338,7 @@ void load_textures()
     g_textures["cursor"] = IMG_LoadTexture(g_renderer, "assets/cursor.png");
     g_textures["crate"] = IMG_LoadTexture(g_renderer, "assets/crate.png");
     g_textures["actor"] = IMG_LoadTexture(g_renderer, "assets/actor.png");
+    g_textures["ui_commandbar"] = IMG_LoadTexture(g_renderer, "assets/commandbar.png");
 }
 
 
