@@ -5,6 +5,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <tuple>
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
@@ -18,19 +19,23 @@ using std::cout;
 using std::endl;
 using std::map;
 using std::string;
+using std::tuple;
 
 // Definitions
 const int TEXTURE_SIZE = 64;
 const int g_width = 1920 / 2;
 const int g_height = 1080 / 2;
-const int g_viewport = 448;
+const int g_viewport = 512;
 const int g_viewport_step = g_viewport / 64;
+const int g_tile = 8;
 static SDL_Texture *texture = NULL;
 static SDL_Texture *texture_01 = NULL;
 Game g_game;
 SDL_Window* g_window;
 SDL_Renderer* g_renderer;
 static map<string, SDL_Texture*> g_textures;
+static map<tuple<int, int>, Object> g_objects;
+static SDL_FRect g_viewport_rect;
 
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv);
@@ -40,6 +45,8 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result);
 void load_textures();
 void destroy_textures();
 void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect);
+void on_mouse_click(const int &x, const int &y);
+
 
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) 
@@ -84,18 +91,19 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
 
     load_textures();
 
+    g_viewport_rect.w = g_viewport_rect.h = TEXTURE_SIZE;
+
     return SDL_APP_CONTINUE;
 }
 
 
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    int offset_x = (g_width / 2) - (g_game.grid_step * (g_game.grid_w / 2));
-    int offset_y = (g_height / 2) - (g_game.grid_step * (g_game.grid_h / 2));
     SDL_FRect l_rect;
     SDL_Time ticks;
     SDL_FRect dst_rect, src_rect;
     const Uint64 now = SDL_GetTicks();
+    map<tuple<int, int>, Object>::iterator g_objects_it;
     SDL_Surface *surface = nullptr;
     SDL_Texture *texture_02 = IMG_LoadTexture(g_renderer, "assets/cursor.png");
     SDL_Texture *dst_texture = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, TEXTURE_SIZE * 2, TEXTURE_SIZE * 2);    
@@ -127,15 +135,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         SDL_FillSurfaceRect(surface, &r, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 0, 255, 0));  /* make a strip of the surface green */
         SDL_UnlockTexture(texture);  /* upload the changes (and frees the temporary surface)! */
     }
-    if (SDL_LockTextureToSurface(texture_01, NULL, &surface)) {
-        SDL_Rect r;
-        r.w = 10;
-        r.h = 10;
-        r.x = 0;
-        r.y = 0;
-        SDL_FillSurfaceRect(surface, &r, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 255, 0, 0));
-        SDL_UnlockTexture(texture_01);  /* upload the changes (and frees the temporary surface)! */
-    }
     
 
     /* as you can see from this, rendering draws over whatever was drawn before it. */
@@ -155,16 +154,21 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     dst_rect.w = dst_rect.h = TEXTURE_SIZE;
     SDL_RenderTexture(g_renderer, texture, NULL, &dst_rect);
     SDL_RenderTexture(g_renderer, texture_01, NULL, &dst_rect);
-    dst_rect.x = l_rect.x - 3;
-    dst_rect.y = l_rect.y - 3;
+
+    for(g_objects_it = g_objects.begin(); g_objects_it != g_objects.end(); g_objects_it++)
+    {
+        Object obj = g_objects_it->second;
+        SDL_FRect temp_rect = obj.get_rect();
+        
+        SDL_RenderTexture(g_renderer, obj.get_texture(), NULL, &temp_rect); 
+    }
+
+    dst_rect.x = l_rect.x;
+    dst_rect.y = l_rect.y;
     dst_rect.w = dst_rect.h = g_textures["cursor"]->w;
     SDL_RenderTexture(g_renderer, g_textures["cursor"], NULL, &dst_rect);
-//    dst_rect.x = ((int)((l_rect.x - dst_rect.x) / g_viewport) * g_viewport) + dst_rect.x;
-//    dst_rect.y = ((int)((l_rect.y - dst_rect.y) / g_viewport) * g_viewport) + dst_rect.y;
-//    cout << dst_rect.x << endl;
-//    dst_rect.w = dst_rect.h = (g_height - 10) / 8;
-//    SDL_RenderTexture(g_renderer, texture_02, NULL, &dst_rect);
 
+    // Render the render target ooooo!
     dst_rect.x = dst_rect.y = 0;
     dst_rect.w = dst_rect.h = g_viewport;
     src_rect.x = 0;
@@ -185,6 +189,15 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     {
         return SDL_APP_SUCCESS;
     }
+    if(event->type == SDL_EVENT_MOUSE_BUTTON_UP && event->button.button == SDL_BUTTON_LEFT)
+    {
+        float x = event->button.x;
+        float y = event->button.y;
+        cout << "before t: "<< x << "," << y << endl;
+        screen_to_world(&x, &y, &g_viewport_rect);
+        cout << "after t: "<< x << "," << y << endl;
+        on_mouse_click((int)(x), (int)(y));
+    }
     return SDL_APP_CONTINUE;
 }
 
@@ -202,8 +215,8 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 
 void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect)
 {
-    *x = ((int)((*x - viewport_rect->x) / g_viewport_step));
-    *y = ((int)((*y - viewport_rect->y) / g_viewport_step));
+    *x = (((int)((*x - viewport_rect->x) / 64))) * g_tile;
+    *y = (((int)((*y - viewport_rect->y) / 64))) * g_tile;
 }
 
 
@@ -222,4 +235,23 @@ void destroy_textures()
     {
         SDL_DestroyTexture(it->second);
     }
+}
+
+
+void on_mouse_click(const int &x, const int &y)
+{
+    Object new_object;
+    SDL_FRect new_rect;
+    tuple<int, int> id(x, y);
+
+    new_rect.x = x;
+    new_rect.y = y;
+    new_rect.w = g_tile;
+    new_rect.h = g_tile;
+    new_object.set_rect(new_rect);
+    new_object.set_texture(g_textures["crate"]);
+
+    cout << "new obj " << new_rect.x << endl;
+
+    g_objects[id] = new_object;
 }

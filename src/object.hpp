@@ -6,6 +6,9 @@
 class Object
 {
     public:
+        Object() :
+            _rect(),
+            _texture(nullptr) {};
         Object(SDL_FRect in_rect, const char* in_img_path, SDL_Renderer* in_renderer) :
             _rect(in_rect),
             _texture(IMG_LoadTexture(in_renderer, in_img_path)) {};
