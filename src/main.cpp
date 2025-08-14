@@ -46,6 +46,7 @@ SDL_Window* g_window;
 SDL_Renderer* g_renderer;
 static map<string, SDL_Texture*> g_textures;
 static map<tuple<int, int>, Object> g_objects;
+static int g_map_tile[2];
 static SDL_FRect g_viewport_rect;
 static Game_States g_state = BUILD;
 static Mouse g_mouse;
@@ -105,6 +106,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
     load_textures();
 
     g_viewport_rect.w = g_viewport_rect.h = TEXTURE_SIZE;
+    g_map_tile[0] = TEXTURE_SIZE * 2;
+    g_map_tile[1] = TEXTURE_SIZE * 2;
 
     return SDL_APP_CONTINUE;
 }
@@ -119,16 +122,13 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     map<tuple<int, int>, Object>::iterator g_objects_it;
     SDL_Surface *surface = nullptr;
     SDL_Texture *texture_02 = IMG_LoadTexture(g_renderer, "assets/cursor.png");
-    SDL_Texture *dst_texture = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, TEXTURE_SIZE * 2, TEXTURE_SIZE * 2);    
+    SDL_Texture *dst_texture = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, g_map_tile[0], g_map_tile[1]);    
     SDL_SetTextureScaleMode(texture_02, SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(dst_texture, SDL_SCALEMODE_NEAREST);
 
     /* we'll have some color move around over a few seconds. */
     const float direction = ((now % 2000) >= 1000) ? 1.0f : -1.0f;
     const float scale = ((float) (((int) (now % 1000)) - 500) / 500.0f) * direction;
-
-    SDL_GetMouseState(&l_rect.x, &l_rect.y);
-    screen_to_world(&l_rect.x, &l_rect.y, &dst_rect);
 
     /* To update a streaming texture, you need to lock it first. This gets you access to the pixels.
        Note that this is considered a _write-only_ operation: the buffer you get from locking
@@ -177,8 +177,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         SDL_RenderTexture(g_renderer, obj.get_texture(), NULL, &temp_rect); 
     }
 
-    dst_rect.x = l_rect.x;
-    dst_rect.y = l_rect.y;
+    dst_rect.x = g_mouse.x;
+    dst_rect.y = g_mouse.y;
     dst_rect.w = dst_rect.h = g_textures["cursor"]->w;
     SDL_RenderTexture(g_renderer, g_textures["cursor"], NULL, &dst_rect);
 
@@ -188,7 +188,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     src_rect.x = 0;
     src_rect.w = src_rect.h = TEXTURE_SIZE;
     SDL_SetRenderTarget(g_renderer, NULL);
-    SDL_RenderTexture(g_renderer, dst_texture, &src_rect, &dst_rect);
+    SDL_RenderTexture(g_renderer, dst_texture, &g_viewport_rect, &dst_rect);
 
     SDL_RenderPresent(g_renderer);
     SDL_DestroyTexture(texture_02);
@@ -204,20 +204,74 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
     float x;
     float y;
+    int change_x = 0;
+    int change_y = 0;
+    int max_map[2] = { g_map_tile[0] / 2, g_map_tile[1] / 2 };
 
     if(event->type == SDL_EVENT_KEY_UP && event->key.key == SDLK_ESCAPE)
     {
         return SDL_APP_SUCCESS;
     }
+    if(event->type == SDL_EVENT_KEY_UP) 
+    {
+        if(event->key.key == SDLK_W)
+        {
+            if(g_viewport_rect.y - 8 >= 0) 
+            { 
+                g_viewport_rect.y -= 8; 
+                change_y = -8;
+            }
+            cout << "viewport_rect: [" << g_viewport_rect.x << ", " << g_viewport_rect.y << ", " << g_viewport_rect.w << ", " << g_viewport_rect.h << "]" << endl;
+
+        }
+        else if(event->key.key == SDLK_S)
+        {
+            if(g_viewport_rect.y + 8 <= max_map[1]) 
+            { 
+                g_viewport_rect.y += 8; 
+                change_y = 8;
+            }
+            cout << "viewport_rect: [" << g_viewport_rect.x << ", " << g_viewport_rect.y << ", " << g_viewport_rect.w << ", " << g_viewport_rect.h << "]" << endl;
+
+        }
+        if(event->key.key == SDLK_A)
+        {
+            if(g_viewport_rect.x - 8 >= 0) 
+            { 
+                g_viewport_rect.x -= 8; 
+                change_x = -8;
+            }
+            cout << "viewport_rect: [" << g_viewport_rect.x << ", " << g_viewport_rect.y << ", " << g_viewport_rect.w << ", " << g_viewport_rect.h << "]" << endl;
+
+        }
+        else if(event->key.key == SDLK_D)
+        {
+            if(g_viewport_rect.x + 8 <= max_map[0]) 
+            { 
+                g_viewport_rect.x += 8; 
+                change_x = 8;
+            }
+            cout << "viewport_rect: [" << g_viewport_rect.x << ", " << g_viewport_rect.y << ", " << g_viewport_rect.w << ", " << g_viewport_rect.h << "]" << endl;
+        }
+
+
+        x = g_mouse.raw_x += change_x;
+        y = g_mouse.raw_y += change_y;
+        screen_to_world(&x, &y, &g_viewport_rect);
+
+        g_mouse.x = (int)x;
+        g_mouse.y = (int)y;
+    }
+
     if(event->type == SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
         x = g_mouse.raw_x = event->button.x;
         y = g_mouse.raw_y = event->button.y;
         g_mouse.held = true;
         g_mouse.event = event->type;
-        cout << "before t: "<< x << "," << y << endl;
+//        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
-        cout << "after t: "<< x << "," << y << endl;
+//        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;
@@ -228,9 +282,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         y = g_mouse.raw_y = event->button.y;
         g_mouse.held = false;
         g_mouse.event = event->type;
-        cout << "before t: "<< x << "," << y << endl;
+//        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
-        cout << "after t: "<< x << "," << y << endl;
+//        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;    
@@ -239,9 +293,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     {
         x = g_mouse.raw_x = event->button.x;
         y = g_mouse.raw_y = event->button.y;
-        cout << "before t: "<< x << "," << y << endl;
+//        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
-        cout << "after t: "<< x << "," << y << endl;
+//        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;
@@ -264,8 +318,8 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 
 void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect)
 {
-    *x = (((int)((*x - viewport_rect->x) / 64))) * g_tile;
-    *y = (((int)((*y - viewport_rect->y) / 64))) * g_tile;
+    *x = (((int)((*x) / 64)) * g_tile) + viewport_rect->x;
+    *y = (((int)((*y) / 64)) * g_tile) + viewport_rect->y;
 }
 
 
