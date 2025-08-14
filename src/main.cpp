@@ -14,6 +14,7 @@
 #include <SDL3/SDL_mouse.h>
 #include <SDL3_image/SDL_image.h>
 #include "game.hpp"
+#include "game_states.hpp"
 
 using std::cout;
 using std::endl;
@@ -21,7 +22,17 @@ using std::map;
 using std::string;
 using std::tuple;
 
-// Definitions
+struct Mouse
+{
+    float raw_x, 
+          raw_y;
+    int x,
+        y;
+    bool held;
+    Uint32 event;
+};
+
+// Definitions p.s. I know this should be wrapped in a class, but it is a game jam.
 const int TEXTURE_SIZE = 64;
 const int g_width = 1920 / 2;
 const int g_height = 1080 / 2;
@@ -36,6 +47,8 @@ SDL_Renderer* g_renderer;
 static map<string, SDL_Texture*> g_textures;
 static map<tuple<int, int>, Object> g_objects;
 static SDL_FRect g_viewport_rect;
+static Game_States g_state = BUILD;
+static Mouse g_mouse;
 
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv);
@@ -46,7 +59,7 @@ void load_textures();
 void destroy_textures();
 void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect);
 void on_mouse_click(const int &x, const int &y);
-
+void game_logic();
 
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) 
@@ -125,7 +138,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     /* You can use SDL_LockTexture() to get an array of raw pixels, but we're going to use
        SDL_LockTextureToSurface() here, because it wraps that array in a temporary SDL_Surface,
        letting us use the surface drawing functions instead of lighting up individual pixels. */
-    if (SDL_LockTextureToSurface(texture, NULL, &surface)) {
+    if (SDL_LockTextureToSurface(texture, NULL, &surface)) 
+    {
         SDL_Rect r;
         SDL_FillSurfaceRect(surface, NULL, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 0, 0, 0));
         r.w = TEXTURE_SIZE;
@@ -179,25 +193,60 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderPresent(g_renderer);
     SDL_DestroyTexture(texture_02);
     SDL_DestroyTexture(dst_texture);
+
+    game_logic();
+
     return SDL_APP_CONTINUE;
 }
 
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
+    float x;
+    float y;
+
     if(event->type == SDL_EVENT_KEY_UP && event->key.key == SDLK_ESCAPE)
     {
         return SDL_APP_SUCCESS;
     }
-    if(event->type == SDL_EVENT_MOUSE_BUTTON_UP && event->button.button == SDL_BUTTON_LEFT)
+    if(event->type == SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
-        float x = event->button.x;
-        float y = event->button.y;
+        x = g_mouse.raw_x = event->button.x;
+        y = g_mouse.raw_y = event->button.y;
+        g_mouse.held = true;
+        g_mouse.event = event->type;
         cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
         cout << "after t: "<< x << "," << y << endl;
-        on_mouse_click((int)(x), (int)(y));
+
+        g_mouse.x = (int)x;
+        g_mouse.y = (int)y;
     }
+    if(event->type == SDL_EVENT_MOUSE_BUTTON_UP)
+    {
+        x = g_mouse.raw_x = event->button.x;
+        y = g_mouse.raw_y = event->button.y;
+        g_mouse.held = false;
+        g_mouse.event = event->type;
+        cout << "before t: "<< x << "," << y << endl;
+        screen_to_world(&x, &y, &g_viewport_rect);
+        cout << "after t: "<< x << "," << y << endl;
+
+        g_mouse.x = (int)x;
+        g_mouse.y = (int)y;    
+    }
+    if(event->type == SDL_EVENT_MOUSE_MOTION)
+    {
+        x = g_mouse.raw_x = event->button.x;
+        y = g_mouse.raw_y = event->button.y;
+        cout << "before t: "<< x << "," << y << endl;
+        screen_to_world(&x, &y, &g_viewport_rect);
+        cout << "after t: "<< x << "," << y << endl;
+
+        g_mouse.x = (int)x;
+        g_mouse.y = (int)y;
+    }
+
     return SDL_APP_CONTINUE;
 }
 
@@ -254,4 +303,21 @@ void on_mouse_click(const int &x, const int &y)
     cout << "new obj " << new_rect.x << endl;
 
     g_objects[id] = new_object;
+}
+
+
+void game_logic()
+{
+    float x, y;
+
+    if(g_mouse.held)
+    {
+        tuple<int, int> id;
+        id = std::make_tuple(g_mouse.x, g_mouse.y);
+
+        if(g_state == BUILD && g_objects.find(id) == g_objects.end())
+        {
+            on_mouse_click(g_mouse.x, g_mouse.y);
+        }
+    }
 }
