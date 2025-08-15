@@ -134,27 +134,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     const float direction = ((now % 2000) >= 1000) ? 1.0f : -1.0f;
     const float scale = ((float) (((int) (now % 1000)) - 500) / 500.0f) * direction;
 
-    /* To update a streaming texture, you need to lock it first. This gets you access to the pixels.
-       Note that this is considered a _write-only_ operation: the buffer you get from locking
-       might not acutally have the existing contents of the texture, and you have to write to every
-       locked pixel! */
-
-    /* You can use SDL_LockTexture() to get an array of raw pixels, but we're going to use
-       SDL_LockTextureToSurface() here, because it wraps that array in a temporary SDL_Surface,
-       letting us use the surface drawing functions instead of lighting up individual pixels. */
-    if (SDL_LockTextureToSurface(texture, NULL, &surface)) 
-    {
-        SDL_Rect r;
-        SDL_FillSurfaceRect(surface, NULL, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 0, 0, 0));
-        r.w = TEXTURE_SIZE;
-        r.h = TEXTURE_SIZE / 10;
-        r.x = 0;
-        r.y = (int) (((float) (TEXTURE_SIZE - r.h)) * ((scale + 1.0f) / 2.0f));
-        SDL_FillSurfaceRect(surface, &r, SDL_MapRGB(SDL_GetPixelFormatDetails(surface->format), NULL, 0, 255, 0));  /* make a strip of the surface green */
-        SDL_UnlockTexture(texture);  /* upload the changes (and frees the temporary surface)! */
-    }
-    
-
     /* as you can see from this, rendering draws over whatever was drawn before it. */
     SDL_SetRenderDrawColor(g_renderer, 66, 66, 66, SDL_ALPHA_OPAQUE);  /* grey, full alpha */
     SDL_RenderClear(g_renderer);  /* start with a blank canvas. */
@@ -167,6 +146,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     {
         cout << "ERROR::SET_RENDER_TARGET::" << SDL_GetError() << endl;
     }
+    SDL_SetRenderDrawColor(g_renderer, 66, 66, 66, SDL_ALPHA_OPAQUE);  /* grey, full alpha */
+    SDL_RenderClear(g_renderer);
     dst_rect.x = 0;
     dst_rect.y = 0;
     dst_rect.w = dst_rect.h = TEXTURE_SIZE;

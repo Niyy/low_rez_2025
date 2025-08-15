@@ -3,4 +3,4 @@
 
 class Actor : protected Object
 {
-}
+};
