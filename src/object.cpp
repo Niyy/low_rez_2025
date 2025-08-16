@@ -1,7 +1,7 @@
 #include "object.hpp"
 
 
-SDL_FRect Object::get_rect()
+const SDL_FRect& Object::rect() const
 {
     return _rect;
 }

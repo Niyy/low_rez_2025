@@ -2,14 +2,16 @@
 #include <map>
 #include "object.hpp"
 
-using namespace low_rez
+#pragma once
+namespace low_rez
 {
     class Map 
     {
         public:
-             Map();
-             place(int x, int y);
-             remove(int x, int y);
+             Map() {};
+             bool place(Object obj);
+             bool remove(Object obj);
+             std::map<std::tuple<int, int>, Object>& objects();
 
         private:
             std::map<std::tuple<int, int>, Object> _objects;

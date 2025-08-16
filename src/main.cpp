@@ -15,6 +15,7 @@
 #include <SDL3_image/SDL_image.h>
 #include "game.hpp"
 #include "game_states.hpp"
+#include "map.hpp"
 
 using std::cout;
 using std::endl;
@@ -52,6 +53,8 @@ static SDL_FRect g_viewport_rect;
 static SDL_FRect g_ui_rect;
 static Game_States g_state = BUILD;
 static Mouse g_mouse;
+static int id_file = 0;
+static low_rez::Map g_map;
 
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv);
@@ -120,15 +123,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
 
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    SDL_FRect l_rect;
     SDL_Time ticks;
     SDL_FRect dst_rect, src_rect;
     const Uint64 now = SDL_GetTicks();
-    map<tuple<int, int>, Object>::iterator g_objects_it;
-    SDL_Surface *surface = nullptr;
-    SDL_Texture *texture_02 = IMG_LoadTexture(g_renderer, "assets/cursor.png");
     SDL_Texture *dst_texture = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, g_map_tile[0], g_map_tile[1]);    
-    SDL_SetTextureScaleMode(texture_02, SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(dst_texture, SDL_SCALEMODE_NEAREST);
 
     /* we'll have some color move around over a few seconds. */
@@ -155,10 +153,10 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderTexture(g_renderer, texture, NULL, &dst_rect);
     SDL_RenderTexture(g_renderer, texture_01, NULL, &dst_rect);
 
-    for(g_objects_it = g_objects.begin(); g_objects_it != g_objects.end(); g_objects_it++)
+    for(map<tuple<int, int>, Object>::iterator objects_it = g_map.objects().begin(); objects_it != g_map.objects().end(); objects_it++)
     {
-        Object obj = g_objects_it->second;
-        SDL_FRect temp_rect = obj.get_rect();
+        Object obj = objects_it->second;
+        SDL_FRect temp_rect = obj.rect();
         
         SDL_RenderTexture(g_renderer, obj.get_texture(), NULL, &temp_rect); 
     }
@@ -183,7 +181,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_RenderTexture(g_renderer, dst_texture, &g_viewport_rect, &dst_rect);
 
     SDL_RenderPresent(g_renderer);
-    SDL_DestroyTexture(texture_02);
     SDL_DestroyTexture(dst_texture);
 
     game_logic();
@@ -250,26 +247,28 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         x = g_mouse.raw_x += change_x;
         y = g_mouse.raw_y += change_y;
 
-        cout << "before t: "<< x << "," << y << endl;
+//        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
-        cout << "after t: "<< x << "," << y << endl;
+//        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;
     }
-
+    
     if(event->type == SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
         x = g_mouse.raw_x = event->button.x;
         y = g_mouse.raw_y = event->button.y;
         g_mouse.held = true;
         g_mouse.event = event->type;
-        cout << "before t: "<< x << "," << y << endl;
+//        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
-        cout << "after t: "<< x << "," << y << endl;
+//        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;
+
+        on_mouse_click(g_mouse.x, g_mouse.y);
     }
     if(event->type == SDL_EVENT_MOUSE_BUTTON_UP)
     {
@@ -277,9 +276,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         y = g_mouse.raw_y = event->button.y;
         g_mouse.held = false;
         g_mouse.event = event->type;
-        cout << "before t: "<< x << "," << y << endl;
+//        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
-        cout << "after t: "<< x << "," << y << endl;
+//        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;    
@@ -288,9 +287,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     {
         x = g_mouse.raw_x = event->button.x;
         y = g_mouse.raw_y = event->button.y;
-        cout << "before t: "<< x << "," << y << endl;
+//        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
-        cout << "after t: "<< x << "," << y << endl;
+//        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;
@@ -313,8 +312,8 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 
 void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect)
 {
-    *x = (((int)((*x) / g_pix_per_pix)) * g_viewport_step) + viewport_rect->x;
-    *y = (((int)((*y) / g_pix_per_pix)) * g_viewport_step) + viewport_rect->y;
+    *x = (((int)((*x) / g_pix_per_pix))) + viewport_rect->x;
+    *y = (((int)((*y) / g_pix_per_pix))) + viewport_rect->y;
 }
 
 
@@ -324,6 +323,7 @@ void load_textures()
     g_textures["crate"] = IMG_LoadTexture(g_renderer, "assets/crate.png");
     g_textures["actor"] = IMG_LoadTexture(g_renderer, "assets/actor.png");
     g_textures["ui_commandbar"] = IMG_LoadTexture(g_renderer, "assets/commandbar.png");
+    g_textures["wall_0000"] = IMG_LoadTexture(g_renderer, "assets/wall_0000.png");
 }
 
 
@@ -339,35 +339,33 @@ void destroy_textures()
 
 void on_mouse_click(const int &x, const int &y)
 {
-    Object new_object;
-    SDL_FRect new_rect;
-    tuple<int, int> id(x, y);
+    if(g_state == BUILD && g_mouse.event == SDL_EVENT_MOUSE_BUTTON_DOWN)
+    {
+        Object new_object;
+        SDL_FRect new_rect;
+        tuple<int, int> id(x, y);
 
-    new_rect.x = x;
-    new_rect.y = y;
-    new_rect.w = g_tile;
-    new_rect.h = g_tile;
-    new_object.set_rect(new_rect);
-    new_object.set_texture(g_textures["crate"]);
+        new_rect.x = x;
+        new_rect.y = y;
+        new_rect.w = g_textures["wall_0000"]->w;
+        new_rect.h = g_textures["wall_0000"]->h;
+        new_object.set_rect(new_rect);
+        new_object.set_texture(g_textures["wall_0000"]);
 
-    cout << "new obj " << new_rect.x << endl;
+        cout << "rect adding: " << new_rect.x << " " << new_rect.y << " " << new_rect.w << " " << new_rect.h << endl;
 
-    g_objects[id] = new_object;
+        if(!g_map.place(new_object))
+        {
+            cout << "can't place that!" << endl;
+        }
+    }
 }
 
 
 void game_logic()
 {
-    float x, y;
-
     if(g_mouse.held)
     {
-        tuple<int, int> id;
-        id = std::make_tuple(g_mouse.x, g_mouse.y);
-
-        if(g_state == BUILD && g_objects.find(id) == g_objects.end())
-        {
-            on_mouse_click(g_mouse.x, g_mouse.y);
-        }
+//        on_mouse_click(g_mouse.x, g_mouse.y);
     }
 }

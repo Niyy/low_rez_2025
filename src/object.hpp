@@ -1,3 +1,6 @@
+#ifndef LOWREZ_OBJECT
+#define LOWREZ_OBJECT
+
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3_image/SDL_image.h>
@@ -17,7 +20,7 @@ class Object
             _texture(in_texture) {};
         
         // getter & setters
-        SDL_FRect get_rect();
+        const SDL_FRect& rect() const;
         void set_rect(SDL_FRect in_rect);
         SDL_Texture* get_texture();
         void set_texture(SDL_Texture* in_texture);
@@ -26,3 +29,5 @@ class Object
         SDL_FRect _rect; // location and dimensions
         SDL_Texture *_texture; // essentially the sprite
 };
+
+#endif
