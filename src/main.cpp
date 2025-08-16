@@ -38,7 +38,8 @@ const int g_width = 1920 / 2;
 const int g_height = 1080 / 2;
 const int g_viewport = 512;
 const int g_viewport_step = g_viewport / 64;
-const int g_tile = 8;
+const int g_tile = 1;
+const int g_pix_per_pix = 8; 
 static SDL_Texture *texture = NULL;
 static SDL_Texture *texture_01 = NULL;
 Game g_game;
@@ -162,13 +163,13 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         SDL_RenderTexture(g_renderer, obj.get_texture(), NULL, &temp_rect); 
     }
 
-    dst_rect.x = g_mouse.x;
-    dst_rect.y = g_mouse.y;
+    dst_rect.x = g_mouse.x - 1;
+    dst_rect.y = g_mouse.y - 1;
     dst_rect.w = dst_rect.h = g_textures["cursor"]->w;
     SDL_RenderTexture(g_renderer, g_textures["cursor"], NULL, &dst_rect);
 
-    dst_rect.x = g_viewport_rect.x;
-    dst_rect.y = g_viewport_rect.y;
+    dst_rect.x = 0;//g_viewport_rect.x;
+    dst_rect.y = 0;//g_viewport_rect.y;
     dst_rect.w = g_textures["ui_commandbar"]->w;
     dst_rect.h = g_textures["ui_commandbar"]->h;
     SDL_RenderTexture(g_renderer, g_textures["ui_commandbar"], NULL, &dst_rect); 
@@ -248,7 +249,10 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
         x = g_mouse.raw_x += change_x;
         y = g_mouse.raw_y += change_y;
+
+        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
+        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;
@@ -260,9 +264,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         y = g_mouse.raw_y = event->button.y;
         g_mouse.held = true;
         g_mouse.event = event->type;
-//        cout << "before t: "<< x << "," << y << endl;
+        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
-//        cout << "after t: "<< x << "," << y << endl;
+        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;
@@ -273,9 +277,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         y = g_mouse.raw_y = event->button.y;
         g_mouse.held = false;
         g_mouse.event = event->type;
-//        cout << "before t: "<< x << "," << y << endl;
+        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
-//        cout << "after t: "<< x << "," << y << endl;
+        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;    
@@ -284,9 +288,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     {
         x = g_mouse.raw_x = event->button.x;
         y = g_mouse.raw_y = event->button.y;
-//        cout << "before t: "<< x << "," << y << endl;
+        cout << "before t: "<< x << "," << y << endl;
         screen_to_world(&x, &y, &g_viewport_rect);
-//        cout << "after t: "<< x << "," << y << endl;
+        cout << "after t: "<< x << "," << y << endl;
 
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;
@@ -309,8 +313,8 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 
 void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect)
 {
-    *x = (((int)((*x) / 64)) * g_tile) + viewport_rect->x;
-    *y = (((int)((*y) / 64)) * g_tile) + viewport_rect->y;
+    *x = (((int)((*x) / g_pix_per_pix)) * g_viewport_step) + viewport_rect->x;
+    *y = (((int)((*y) / g_pix_per_pix)) * g_viewport_step) + viewport_rect->y;
 }
 
 
