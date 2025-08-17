@@ -30,6 +30,7 @@ struct Mouse
     int x,
         y;
     bool held;
+    bool moved;
     Uint32 event;
 };
 
@@ -53,7 +54,6 @@ static SDL_FRect g_viewport_rect;
 static SDL_FRect g_ui_rect;
 static Game_States g_state = BUILD;
 static Mouse g_mouse;
-static int id_file = 0;
 static low_rez::Map g_map;
 
 
@@ -64,7 +64,7 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result);
 void load_textures();
 void destroy_textures();
 void screen_to_world(float* x, float* y, SDL_FRect* viewport_rect);
-void on_mouse_click(const int &x, const int &y);
+void on_mouse_click(const int &x, const int &y, SDL_Texture* new_texture);
 void game_logic();
 
 
@@ -185,6 +185,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     game_logic();
 
+    g_mouse.moved = false;
+
     return SDL_APP_CONTINUE;
 }
 
@@ -265,10 +267,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         screen_to_world(&x, &y, &g_viewport_rect);
 //        cout << "after t: "<< x << "," << y << endl;
 
+        g_mouse.moved = true;
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;
-
-        on_mouse_click(g_mouse.x, g_mouse.y);
     }
     if(event->type == SDL_EVENT_MOUSE_BUTTON_UP)
     {
@@ -280,6 +281,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         screen_to_world(&x, &y, &g_viewport_rect);
 //        cout << "after t: "<< x << "," << y << endl;
 
+        g_mouse.moved = true;
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;    
     }
@@ -291,6 +293,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         screen_to_world(&x, &y, &g_viewport_rect);
 //        cout << "after t: "<< x << "," << y << endl;
 
+        g_mouse.moved = true;
         g_mouse.x = (int)x;
         g_mouse.y = (int)y;
     }
@@ -337,20 +340,22 @@ void destroy_textures()
 }
 
 
-void on_mouse_click(const int &x, const int &y)
+void on_mouse_click(const int &x, const int &y, SDL_Texture* new_texture)
 {
     if(g_state == BUILD && g_mouse.event == SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
         Object new_object;
         SDL_FRect new_rect;
         tuple<int, int> id(x, y);
+        int w_half = new_texture->w / 2,
+            h_half = new_texture->w / 2;;
 
-        new_rect.x = x;
-        new_rect.y = y;
-        new_rect.w = g_textures["wall_0000"]->w;
-        new_rect.h = g_textures["wall_0000"]->h;
+        new_rect.x = x - w_half;
+        new_rect.y = y - h_half;
+        new_rect.w = new_texture->w;
+        new_rect.h = new_texture->h;
         new_object.set_rect(new_rect);
-        new_object.set_texture(g_textures["wall_0000"]);
+        new_object.set_texture(new_texture);
 
         cout << "rect adding: " << new_rect.x << " " << new_rect.y << " " << new_rect.w << " " << new_rect.h << endl;
 
@@ -364,8 +369,8 @@ void on_mouse_click(const int &x, const int &y)
 
 void game_logic()
 {
-    if(g_mouse.held)
+    if(g_mouse.held && g_mouse.moved)
     {
-//        on_mouse_click(g_mouse.x, g_mouse.y);
+        on_mouse_click(g_mouse.x, g_mouse.y, g_textures["wall_0000"]);
     }
 }

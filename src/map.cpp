@@ -5,9 +5,9 @@ bool low_rez::Map::place(Object obj)
 {
     int h_index = 0,
         w_index = 0;
-    std::tuple<int, int> id(obj.rect().x, obj.rect().y);
+    std::tuple<int, int> start_id(obj.rect().x, obj.rect().y);
 
-    if(_objects.find(id) == _objects.end())
+    if(_objects.find(start_id) == _objects.end())
     {
         bool hit = false;
 
@@ -31,10 +31,18 @@ bool low_rez::Map::place(Object obj)
         {
             for(; h_index >= 0; h_index--)
             {
-                for(; w_index > 0; w_index--)
+                for(w_index = 0; w_index < obj.rect().w; w_index++)
                 {
                     std::tuple<int, int> id(obj.rect().x + w_index, obj.rect().y + h_index);
-                    _objects.erase(id);
+                    int another_obj_id = _objects.find(id)->second.get_id();
+
+                    if(another_obj_id != obj.get_id())
+                    { 
+                        continue; 
+                    }
+
+                    std::cout << "hey" << obj.rect().x + w_index << "," << obj.rect().y + h_index << std::endl;
+                    std::cout << "deleted" << _objects.erase(id) << std::endl;
                 }
             }
 

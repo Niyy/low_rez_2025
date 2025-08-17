@@ -1,6 +1,15 @@
 #include "object.hpp"
 
 
+unsigned int Object::id_file = 0;
+
+
+int Object::get_id()
+{
+    return _id;
+}
+
+
 const SDL_FRect& Object::rect() const
 {
     return _rect;
