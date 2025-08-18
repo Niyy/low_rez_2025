@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <tuple>
+#include <array>
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
@@ -22,6 +23,9 @@ using std::endl;
 using std::map;
 using std::string;
 using std::tuple;
+using std::array;
+
+using namespace low_rez;
 
 struct Mouse
 {
@@ -128,6 +132,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     const Uint64 now = SDL_GetTicks();
     SDL_Texture *dst_texture = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, g_map_tile[0], g_map_tile[1]);    
     SDL_SetTextureScaleMode(dst_texture, SDL_SCALEMODE_NEAREST);
+    map<std::array<int, 2>, Object> objs = g_map.get_objects();
 
     /* we'll have some color move around over a few seconds. */
     const float direction = ((now % 2000) >= 1000) ? 1.0f : -1.0f;
@@ -152,13 +157,16 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     dst_rect.w = dst_rect.h = TEXTURE_SIZE;
     SDL_RenderTexture(g_renderer, texture, NULL, &dst_rect);
     SDL_RenderTexture(g_renderer, texture_01, NULL, &dst_rect);
-
-    for(map<tuple<int, int>, Object>::iterator objects_it = g_map.objects().begin(); objects_it != g_map.objects().end(); objects_it++)
+    
+    if(!objs.empty())
     {
-        Object obj = objects_it->second;
-        SDL_FRect temp_rect = obj.rect();
-        
-        SDL_RenderTexture(g_renderer, obj.get_texture(), NULL, &temp_rect); 
+        for(map<array<int, 2>, Object>::iterator objects_it = objs.begin(); objects_it != objs.end(); objects_it++)
+        {
+            Object obj = objects_it->second;
+            SDL_FRect temp_rect = obj.rect();
+            
+            SDL_RenderTexture(g_renderer, obj.get_texture(), NULL, &temp_rect); 
+        }
     }
 
     dst_rect.x = g_mouse.x - 1;
@@ -346,7 +354,7 @@ void on_mouse_click(const int &x, const int &y, SDL_Texture* new_texture)
     {
         Object new_object;
         SDL_FRect new_rect;
-        tuple<int, int> id(x, y);
+        array<int, 2> id = {x, y};
         int w_half = new_texture->w / 2,
             h_half = new_texture->w / 2;;
 

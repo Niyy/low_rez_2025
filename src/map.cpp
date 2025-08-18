@@ -5,7 +5,7 @@ bool low_rez::Map::place(Object obj)
 {
     int h_index = 0,
         w_index = 0;
-    std::tuple<int, int> start_id(obj.rect().x, obj.rect().y);
+    std::array<int, 2> start_id = {(int)(obj.rect().x), (int)(obj.rect().y)};
 
     if(_objects.find(start_id) == _objects.end())
     {
@@ -15,7 +15,7 @@ bool low_rez::Map::place(Object obj)
         {
             for(w_index = 0; w_index < obj.rect().w; w_index++)
             {
-                std::tuple<int, int> id(obj.rect().x + w_index, obj.rect().y + h_index);                
+                std::array<int, 2> id = {(int)(obj.rect().x + w_index), (int)(obj.rect().y + h_index)};
 
                 if(_objects.find(id) != _objects.end())
                 {
@@ -33,7 +33,7 @@ bool low_rez::Map::place(Object obj)
             {
                 for(w_index = 0; w_index < obj.rect().w; w_index++)
                 {
-                    std::tuple<int, int> id(obj.rect().x + w_index, obj.rect().y + h_index);
+                    std::array<int, 2> id = {(int)(obj.rect().x + w_index), (int)(obj.rect().y + h_index)};
                     int another_obj_id = _objects.find(id)->second.get_id();
 
                     if(another_obj_id != obj.get_id())
@@ -58,7 +58,7 @@ bool low_rez::Map::place(Object obj)
 
 bool low_rez::Map::remove(Object obj)
 {
-    std::tuple<int, int> id(obj.rect().x, obj.rect().y);
+    std::array<int, 2> id = {(int)(obj.rect().x), (int)(obj.rect().y)};
 
     if(_objects.find(id) != _objects.end())
     {
@@ -66,7 +66,9 @@ bool low_rez::Map::remove(Object obj)
         {
             for(int w_index = 0; w_index < obj.rect().w; w_index++)
             {
-                _objects.erase(std::tuple<int, int>(obj.rect().x + w_index, obj.rect().y + h_index));
+                std::array<int, 2> erase_id = {(int)(obj.rect().x + w_index), (int)(obj.rect().y + h_index)};
+
+                _objects.erase(erase_id);
             }
         }
 
@@ -77,13 +79,20 @@ bool low_rez::Map::remove(Object obj)
 }
 
 
-const std::map<std::tuple<int, int>, Object>& low_rez::Map::get_objects()
+std::map<std::array<int, 2>, Object> low_rez::Map::get_objects()
 {
     return _objects;
 }
 
 
-Object& Object::query(SDL_FRect start, Type what)
-{
-    std::vector<array<int, 2>> contents =_map_bound_groups[what];
-}
+//Object* low_rez::Map::query(SDL_FRect start, low_rez::Type what)
+//{
+//    std::vector<array<int, 2>> contents;
+//
+//    if((contents =_map_bound_groups[what]) != contents.end())
+//    {
+//        return &_objects[contents];
+//    }
+//
+//    return nullptr;
+//}
