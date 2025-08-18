@@ -77,7 +77,13 @@ bool low_rez::Map::remove(Object obj)
 }
 
 
-std::map<std::tuple<int, int>, Object>& low_rez::Map::objects()
+const std::map<std::tuple<int, int>, Object>& low_rez::Map::get_objects()
 {
     return _objects;
+}
+
+
+Object& Object::query(SDL_FRect start, Type what)
+{
+    std::vector<array<int, 2>> contents =_map_bound_groups[what];
 }
