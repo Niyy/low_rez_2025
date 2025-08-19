@@ -74,6 +74,9 @@ void game_logic();
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) 
 {
+    SDL_FRect temp_rect;
+    Object temp_obj;
+
     cout << "hello there" << endl;
 
     g_window = SDL_CreateWindow("My Game", g_width, g_height, 0);
@@ -120,6 +123,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
     g_viewport_rect.h = TEXTURE_SIZE;
     g_map_tile[0] = TEXTURE_SIZE * 2;
     g_map_tile[1] = TEXTURE_SIZE * 2;
+    
+    temp_rect.x = 15;
+    temp_rect.y = 15;
+    temp_rect.w = g_textures["actor"]->w;
+    temp_rect.h = g_textures["actor"]->h;
+    temp_obj = Object(temp_rect, g_textures["actor"]);
+    g_map.place(temp_obj);
 
     return SDL_APP_CONTINUE;
 }
@@ -132,7 +142,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     const Uint64 now = SDL_GetTicks();
     SDL_Texture *dst_texture = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, g_map_tile[0], g_map_tile[1]);    
     SDL_SetTextureScaleMode(dst_texture, SDL_SCALEMODE_NEAREST);
-    map<std::array<int, 2>, Object> objs = g_map.get_objects();
+    map<array<int, 2>, Object> objs = g_map.get_objects();
 
     /* we'll have some color move around over a few seconds. */
     const float direction = ((now % 2000) >= 1000) ? 1.0f : -1.0f;

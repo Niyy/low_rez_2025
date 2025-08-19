@@ -20,16 +20,17 @@ class Object
             _id(id_file++),
             _rect(),
             _texture(nullptr) {};
-        Object(SDL_FRect in_rect, const char* in_img_path, SDL_Renderer* in_renderer) :
-            _id(id_file++),
-            _rect(in_rect),
-            _texture(IMG_LoadTexture(in_renderer, in_img_path)) {};
         Object(SDL_FRect in_rect, SDL_Texture* in_texture) :
             _id(id_file),
             _rect(in_rect),
             _texture(in_texture) {};
+        Object(int x, int y); 
         
         // getter & setters
+        int x();
+        int x(int i_x);
+        int y();
+        int y(int i_y);
         int get_id();
         const SDL_FRect& rect() const;
         void set_rect(SDL_FRect in_rect);
