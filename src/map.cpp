@@ -120,8 +120,57 @@ Object* low_rez::Map::query(SDL_FRect start, std::string what)
 }
 
 
-//std::vector<array<int, 2>>* low_rez::Map::make_path(int bound_x, int bound_y, Object obj, array<int, 2> dst)
-//{
-//    array<int, 2> start(obj.x(), obj.y());
-//    queue<int, 2> queued_tiles; 
-//}
+unsigned int low_rez::Map::make_path(int bound_x, int bound_y, Object obj, array<int, 2> dst)
+{
+    array<int, 2> start = {obj.x(), obj.y()};
+    queue<array<int, 2>> queued_tiles;
+
+    queued_tiles.push(get_north(bound_x, bound_y, start));
+    queued_tiles.push(get_north(bound_x, bound_y, start));
+    queued_tiles.push(get_north(bound_x, bound_y, start));
+    queued_tiles.push(get_north(bound_x, bound_y, start));
+
+    while(!queue.empty())
+    {
+        array<int, 2> current = queue.pop();
+    }
+
+    return 0; 
+}
+
+
+array<int, 2> low_rez::Map::get_north(int bound_x, int bound_y, array<int, 2> src) 
+{
+    array<int, 2> out_point = {src[0], src[1] - 1};
+
+    if(out_point[0] < 0 || out_point[0] > bound_x || out_point[1] < 0 || out_point[1] > bound_y)
+    {
+        throw "POINT_OUT_OF_BOUNDS";
+    }
+
+    return out_point;
+}
+
+
+array<int, 2> low_rez::Map::get_south(int bound_x, int bound_y, array<int, 2> src)
+{
+    array<int, 2> out_point = {src[0], src[1] + 1};
+
+    return out_point;
+}
+
+
+array<int, 2> low_rez::Map::get_east(int bound_x, int bound_y, array<int, 2> src)
+{
+    array<int, 2> out_point = {src[0] + 1, src[1]};
+
+    return out_point;
+}
+
+
+array<int, 2> low_rez::Map::get_west(int bound_x, int bound_y, array<int, 2> src)
+{
+    array<int, 2> out_point = {src[0] - 1, src[1]};
+
+    return out_point;
+}
