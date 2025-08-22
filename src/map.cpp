@@ -1,6 +1,5 @@
 #include "map.hpp"
 #include "min_heap.hpp"
-#include <iostream>
 
 bool low_rez::Map::place(Object obj)
 {
@@ -41,9 +40,6 @@ bool low_rez::Map::place(Object obj)
                     { 
                         continue; 
                     }
-
-                    std::cout << "hey" << obj.rect().x + w_index << "," << obj.rect().y + h_index << std::endl;
-                    std::cout << "deleted" << _objects.erase(id) << std::endl;
                 }
             }
 
@@ -121,47 +117,50 @@ Object* low_rez::Map::query(SDL_FRect start, std::string what)
 }
 
 
-unsigned int low_rez::Map::make_path(int bound_x, int bound_y, Object obj, array<int, 2> dst)
+stack<array<int, 2>> low_rez::Map::make_path(int bound_x, int bound_y, Object obj, array<int, 2> dst)
 {
     array<int, 2> current;
     array<int, 2> start = {obj.x(), obj.y()};
     Min_Heap<array<int, 2>> queued_tiles;
     map<array<int, 2>, array<int, 2>> hit_tiles;
+    stack<array<int, 2>> path;
 
     hit_tiles[start] = start;
     add_to_path(bound_x, bound_y, dst, start, get_north(start), hit_tiles, queued_tiles);
     add_to_path(bound_x, bound_y, dst, start, get_south(start), hit_tiles, queued_tiles);
     add_to_path(bound_x, bound_y, dst, start, get_west(start), hit_tiles, queued_tiles);
     add_to_path(bound_x, bound_y, dst, start, get_east(start), hit_tiles, queued_tiles);
+    add_to_path(bound_x, bound_y, dst, start, get_north_east(start), hit_tiles, queued_tiles);
+    add_to_path(bound_x, bound_y, dst, start, get_south_east(start), hit_tiles, queued_tiles);
+    add_to_path(bound_x, bound_y, dst, start, get_north_west(start), hit_tiles, queued_tiles);
+    add_to_path(bound_x, bound_y, dst, start, get_south_west(start), hit_tiles, queued_tiles);
 
     while(!queued_tiles.empty())
     {
-        int distance_x,
-            distance_y;
-
         current = queued_tiles.pop();
     
         if(current == dst)
         {
-            cout << "found" << endl;
             break;
         }
-        
 
         add_to_path(bound_x, bound_y, dst, current, get_north(current), hit_tiles, queued_tiles);
         add_to_path(bound_x, bound_y, dst, current, get_south(current), hit_tiles, queued_tiles);
         add_to_path(bound_x, bound_y, dst, current, get_west(current), hit_tiles, queued_tiles);
         add_to_path(bound_x, bound_y, dst, current, get_east(current), hit_tiles, queued_tiles);
+        add_to_path(bound_x, bound_y, dst, current, get_north_east(current), hit_tiles, queued_tiles);
+        add_to_path(bound_x, bound_y, dst, current, get_south_east(current), hit_tiles, queued_tiles);
+        add_to_path(bound_x, bound_y, dst, current, get_north_west(current), hit_tiles, queued_tiles);
+        add_to_path(bound_x, bound_y, dst, current, get_south_west(current), hit_tiles, queued_tiles);
     }
 
     for(array<int, 2> index = current; index != start;)
     {
-        cout << "[" << index[0] << ", " << index[1] << "]" << endl;
-
+        path.push(index);
         index = hit_tiles[index];
     }
 
-    return 0; 
+    return path; 
 }
 
 
@@ -183,7 +182,6 @@ void low_rez::Map::add_to_path(
 
     if(hit_tiles.find(to_add) == hit_tiles.end() && !x_out_of_bounds && !y_out_of_bounds)
     {
-        cout << "added: [" << to_add[0] << ", " << to_add[1] << "]" << endl;
         queued_tiles.push(to_add, distance);
         hit_tiles[to_add] = src;
     }
@@ -217,6 +215,32 @@ array<int, 2> low_rez::Map::get_east(array<int, 2> src)
 array<int, 2> low_rez::Map::get_west(array<int, 2> src)
 {
     array<int, 2> out_point = {src[0] - 1, src[1]};
+
+    return out_point;
+}
+
+
+array<int, 2> low_rez::Map::get_south_west(array<int, 2> src)
+{
+    array<int, 2> out_point = {src[0] - 1, src[1] + 1};
+
+    return out_point;
+}
+array<int, 2> low_rez::Map::get_south_east(array<int, 2> src)
+{
+    array<int, 2> out_point = {src[0] + 1, src[1] + 1};
+
+    return out_point;
+}
+array<int, 2> low_rez::Map::get_north_west(array<int, 2> src)
+{
+    array<int, 2> out_point = {src[0] + 1, src[1] - 1};
+
+    return out_point;
+}
+array<int, 2> low_rez::Map::get_north_east(array<int, 2> src)
+{
+    array<int, 2> out_point = {src[0] + 1, src[1] + 1};
 
     return out_point;
 }

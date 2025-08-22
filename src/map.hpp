@@ -5,6 +5,7 @@
 #include <set>
 #include <array>
 #include <queue>
+#include <stack>
 #include <iostream>
 #include "object.hpp"
 #include "min_heap.hpp"
@@ -15,6 +16,7 @@ using std::set;
 using std::queue;
 using std::string;
 using std::map;
+using std::stack;
 using std::cout;
 using std::endl;
 
@@ -38,7 +40,7 @@ namespace low_rez
             Object get_at(int x, int y);
             std::map<array<int, 2>, Object> get_objects();
             Object* query(SDL_FRect where, std::string what);
-            unsigned int make_path(int bound_x, int bound_y, Object obj, array<int, 2> dst);
+            stack<array<int, 2>> make_path(int bound_x, int bound_y, Object obj, array<int, 2> dst);
             void add_to_path(
                 int bound_x,
                 int bound_y,
@@ -51,6 +53,10 @@ namespace low_rez
             array<int, 2> get_south(array<int, 2> src);
             array<int, 2> get_east(array<int, 2> src);
             array<int, 2> get_west(array<int, 2> src);
+            array<int, 2> get_south_west(array<int, 2> src);
+            array<int, 2> get_south_east(array<int, 2> src);
+            array<int, 2> get_north_west(array<int, 2> src);
+            array<int, 2> get_north_east(array<int, 2> src);
 
         private:
             std::map<array<int, 2>, Object> _objects;
