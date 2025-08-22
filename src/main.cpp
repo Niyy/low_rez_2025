@@ -118,9 +118,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
     load_textures();
 
     g_ui_rect.h =
-    g_ui_rect.w = 
-    g_viewport_rect.w = 
-    g_viewport_rect.h = TEXTURE_SIZE;
+        g_ui_rect.w = 
+        g_viewport_rect.w = 
+        g_viewport_rect.h = TEXTURE_SIZE;
     g_map_tile[0] = TEXTURE_SIZE * 2;
     g_map_tile[1] = TEXTURE_SIZE * 2;
     
@@ -130,6 +130,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
     temp_rect.h = g_textures["actor"]->h;
     temp_obj = Object(temp_rect, g_textures["actor"]);
     g_map.place(temp_obj);
+    
+    
+    array<int, 2> temp_loc2 = {24, 24};
+    array<int, 2> temp_loc = {24, 24};
+    if(temp_loc2 == temp_loc) { cout << "poooooop" << endl; }
+    g_map.make_path(g_map_tile[0], g_map_tile[1], temp_obj, temp_loc); 
 
     return SDL_APP_CONTINUE;
 }

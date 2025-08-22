@@ -1,4 +1,5 @@
 #include "map.hpp"
+#include "min_heap.hpp"
 #include <iostream>
 
 bool low_rez::Map::place(Object obj)
@@ -122,37 +123,82 @@ Object* low_rez::Map::query(SDL_FRect start, std::string what)
 
 unsigned int low_rez::Map::make_path(int bound_x, int bound_y, Object obj, array<int, 2> dst)
 {
+    array<int, 2> current;
     array<int, 2> start = {obj.x(), obj.y()};
-    queue<array<int, 2>> queued_tiles;
+    Min_Heap<array<int, 2>> queued_tiles;
+    map<array<int, 2>, array<int, 2>> hit_tiles;
 
-    queued_tiles.push(get_north(bound_x, bound_y, start));
-    queued_tiles.push(get_north(bound_x, bound_y, start));
-    queued_tiles.push(get_north(bound_x, bound_y, start));
-    queued_tiles.push(get_north(bound_x, bound_y, start));
+    hit_tiles[start] = start;
+    add_to_path(bound_x, bound_y, dst, start, get_north(start), hit_tiles, queued_tiles);
+    add_to_path(bound_x, bound_y, dst, start, get_south(start), hit_tiles, queued_tiles);
+    add_to_path(bound_x, bound_y, dst, start, get_west(start), hit_tiles, queued_tiles);
+    add_to_path(bound_x, bound_y, dst, start, get_east(start), hit_tiles, queued_tiles);
 
-    while(!queue.empty())
+    while(!queued_tiles.empty())
     {
-        array<int, 2> current = queue.pop();
+        int distance_x,
+            distance_y;
+
+        current = queued_tiles.pop();
+    
+        if(current == dst)
+        {
+            cout << "found" << endl;
+            break;
+        }
+        
+
+        add_to_path(bound_x, bound_y, dst, current, get_north(current), hit_tiles, queued_tiles);
+        add_to_path(bound_x, bound_y, dst, current, get_south(current), hit_tiles, queued_tiles);
+        add_to_path(bound_x, bound_y, dst, current, get_west(current), hit_tiles, queued_tiles);
+        add_to_path(bound_x, bound_y, dst, current, get_east(current), hit_tiles, queued_tiles);
+    }
+
+    for(array<int, 2> index = current; index != start;)
+    {
+        cout << "[" << index[0] << ", " << index[1] << "]" << endl;
+
+        index = hit_tiles[index];
     }
 
     return 0; 
 }
 
 
-array<int, 2> low_rez::Map::get_north(int bound_x, int bound_y, array<int, 2> src) 
+void low_rez::Map::add_to_path(
+        int bound_x,
+        int bound_y,
+        array<int, 2> dst,
+        array<int, 2> src,
+        array<int, 2> to_add,
+        map<array<int, 2>, array<int, 2>>& hit_tiles,
+        Min_Heap<array<int, 2>>& queued_tiles)
+{
+    bool x_out_of_bounds = to_add[0] < 0 || to_add[0] > bound_x;
+    bool y_out_of_bounds = to_add[1] < 0 || to_add[1] > bound_y;
+    unsigned int distance_x = to_add[0] - dst[0];
+    unsigned int distance_y = to_add[1] - dst[1];
+    unsigned int distance = distance_x * distance_x + distance_y * distance_y;
+
+
+    if(hit_tiles.find(to_add) == hit_tiles.end() && !x_out_of_bounds && !y_out_of_bounds)
+    {
+        cout << "added: [" << to_add[0] << ", " << to_add[1] << "]" << endl;
+        queued_tiles.push(to_add, distance);
+        hit_tiles[to_add] = src;
+    }
+}
+
+
+array<int, 2> low_rez::Map::get_north(array<int, 2> src) 
 {
     array<int, 2> out_point = {src[0], src[1] - 1};
-
-    if(out_point[0] < 0 || out_point[0] > bound_x || out_point[1] < 0 || out_point[1] > bound_y)
-    {
-        throw "POINT_OUT_OF_BOUNDS";
-    }
 
     return out_point;
 }
 
 
-array<int, 2> low_rez::Map::get_south(int bound_x, int bound_y, array<int, 2> src)
+array<int, 2> low_rez::Map::get_south(array<int, 2> src)
 {
     array<int, 2> out_point = {src[0], src[1] + 1};
 
@@ -160,7 +206,7 @@ array<int, 2> low_rez::Map::get_south(int bound_x, int bound_y, array<int, 2> sr
 }
 
 
-array<int, 2> low_rez::Map::get_east(int bound_x, int bound_y, array<int, 2> src)
+array<int, 2> low_rez::Map::get_east(array<int, 2> src)
 {
     array<int, 2> out_point = {src[0] + 1, src[1]};
 
@@ -168,7 +214,7 @@ array<int, 2> low_rez::Map::get_east(int bound_x, int bound_y, array<int, 2> src
 }
 
 
-array<int, 2> low_rez::Map::get_west(int bound_x, int bound_y, array<int, 2> src)
+array<int, 2> low_rez::Map::get_west(array<int, 2> src)
 {
     array<int, 2> out_point = {src[0] - 1, src[1]};
 
