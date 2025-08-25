@@ -1,29 +1,39 @@
 #include "map.hpp"
 #include "min_heap.hpp"
 
-bool low_rez::Map::place(Object obj)
-{
-    int h_index = 0,
-        w_index = 0;
-     array<int, 2> start_id = {(int)(obj.rect().x), (int)(obj.rect().y)};
 
-    if(_objects.find(start_id) == _objects.end())
+low_rez::Map::~Map()
+{
+   for(auto it = _objects.begin(); it != _objects.end(); it++)
+   {
+       delete it->second;
+   }
+}
+
+
+bool low_rez::Map::place(Object* obj)
+{
+     int h_index = 0,
+         w_index = 0;
+     array<int, 2> start_id = {(int)(obj->rect().x), (int)(obj->rect().y)};
+
+    if(_collisions.find(start_id) == _collisions.end())
     {
         bool hit = false;
 
-        for(h_index = 0; h_index < obj.rect().h; h_index++)
+        for(h_index = 0; h_index < obj->rect().h; h_index++)
         {
-            for(w_index = 0; w_index < obj.rect().w; w_index++)
+            for(w_index = 0; w_index < obj->rect().w; w_index++)
             {
-                array<int, 2> id = {(int)(obj.rect().x + w_index), (int)(obj.rect().y + h_index)};
+                array<int, 2> id = {(int)(obj->rect().x + w_index), (int)(obj->rect().y + h_index)};
 
-                if(_objects.find(id) != _objects.end())
+                if(_collisions.find(id) != _collisions.end())
                 {
                     hit = true;
                     break;
                 }
 
-                _objects[id] = obj;
+                _collisions[id] = obj->get_id();
             }
         }
 
@@ -31,21 +41,25 @@ bool low_rez::Map::place(Object obj)
         {
             for(; h_index >= 0; h_index--)
             {
-                for(w_index = 0; w_index < obj.rect().w; w_index++)
+                for(w_index = 0; w_index < obj->rect().w; w_index++)
                 {
-                    array<int, 2> id = {(int)(obj.rect().x + w_index), (int)(obj.rect().y + h_index)};
-                    int another_obj_id = _objects.find(id)->second.get_id();
+                    array<int, 2> id = {(int)(obj->rect().x + w_index), (int)(obj->rect().y + h_index)};
+                    int another_obj_id = _collisions.find(id)->second;
 
-                    if(another_obj_id != obj.get_id())
+                    if(another_obj_id != obj->get_id())
                     { 
                         continue; 
                     }
+
+                    _collisions.erase(id);
                 }
             }
 
             return false;
         }
 
+        _objects[obj->get_id()] = obj;
+
         return true;
     }
 
@@ -53,19 +67,19 @@ bool low_rez::Map::place(Object obj)
 }
 
 
-bool low_rez::Map::remove(Object obj)
+bool low_rez::Map::remove(Object* obj)
 {
-    array<int, 2> id = {(int)(obj.rect().x), (int)(obj.rect().y)};
+    array<int, 2> id = {(int)(obj->rect().x), (int)(obj->rect().y)};
 
-    if(_objects.find(id) != _objects.end())
+    if(_collisions.find(id) != _collisions.end())
     {
-        for(int h_index = 0; h_index < obj.rect().h; h_index++)
+        for(int h_index = 0; h_index < obj->rect().h; h_index++)
         {
-            for(int w_index = 0; w_index < obj.rect().w; w_index++)
+            for(int w_index = 0; w_index < obj->rect().w; w_index++)
             {
-                array<int, 2> erase_id = {(int)(obj.rect().x + w_index), (int)(obj.rect().y + h_index)};
+                array<int, 2> erase_id = {(int)(obj->rect().x + w_index), (int)(obj->rect().y + h_index)};
 
-                _objects.erase(erase_id);
+                _collisions.erase(erase_id);
             }
         }
 
@@ -76,7 +90,7 @@ bool low_rez::Map::remove(Object obj)
 }
 
 
-std::map<array<int, 2>, Object> low_rez::Map::get_objects()
+std::map<unsigned int, Object*> low_rez::Map::get_objects()
 {
     return _objects;
 }
@@ -98,9 +112,9 @@ Object* low_rez::Map::query(SDL_FRect start, std::string what)
     
     for(unsigned int iter = 0; iter < contents.size(); iter++)
     {
-        Object cur_obj = _objects[contents[iter]];
-        unsigned int x_comp = (start.x - cur_obj.x());
-        unsigned int y_comp = (start.y - cur_obj.y());
+        Object* cur_obj = _objects[_collisions[contents[iter]]];
+        unsigned int x_comp = (start.x - cur_obj->x());
+        unsigned int y_comp = (start.y - cur_obj->y());
         unsigned int dist = 0;
 
         x_comp *= x_comp;
@@ -109,7 +123,7 @@ Object* low_rez::Map::query(SDL_FRect start, std::string what)
 
         if(dist < min)
         {
-            found_obj = &cur_obj;
+            found_obj = cur_obj;
         }
     }
 
@@ -117,10 +131,10 @@ Object* low_rez::Map::query(SDL_FRect start, std::string what)
 }
 
 
-stack<array<int, 2>> low_rez::Map::make_path(int bound_x, int bound_y, Object obj, array<int, 2> dst)
+stack<array<int, 2>> low_rez::Map::make_path(int bound_x, int bound_y, Object* obj, array<int, 2> dst)
 {
     array<int, 2> current;
-    array<int, 2> start = {obj.x(), obj.y()};
+    array<int, 2> start = {obj->x(), obj->y()};
     Min_Heap<array<int, 2>> queued_tiles;
     map<array<int, 2>, array<int, 2>> hit_tiles;
     stack<array<int, 2>> path;
@@ -243,4 +257,22 @@ array<int, 2> low_rez::Map::get_north_east(array<int, 2> src)
     array<int, 2> out_point = {src[0] + 1, src[1] + 1};
 
     return out_point;
+}
+
+
+void low_rez::Map::update(Object* obj)
+{
+    remove(obj);
+    obj->move();
+    place(obj);
+}
+
+
+void low_rez::Map::describe()
+{
+    for(auto it = _objects.begin(); it != _objects.end(); it++)
+    {
+        Object* obj = it->second;
+        std::cout << "["<< obj->x() << ", " << obj->y() << "] -> " << obj->get_id() << std::endl;
+    }
 }

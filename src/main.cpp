@@ -17,6 +17,8 @@
 #include "game.hpp"
 #include "game_states.hpp"
 #include "map.hpp"
+#include "object.hpp"
+#include "actor.hpp"
 
 using std::cout;
 using std::endl;
@@ -73,7 +75,7 @@ void game_logic();
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) 
 {
     SDL_FRect temp_rect;
-    Object temp_obj;
+    Actor* temp_obj;
 
     cout << "hello there" << endl;
 
@@ -126,14 +128,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
     temp_rect.y = 15;
     temp_rect.w = g_textures["actor"]->w;
     temp_rect.h = g_textures["actor"]->h;
-    temp_obj = Object(temp_rect, g_textures["actor"]);
+    temp_obj = new Actor(temp_rect, g_textures["actor"]);
     g_map.place(temp_obj);
-    
     
     array<int, 2> temp_loc2 = {24, 24};
     array<int, 2> temp_loc = {24, 24};
     if(temp_loc2 == temp_loc) { cout << "poooooop" << endl; }
-    g_map.make_path(g_map_tile[0], g_map_tile[1], temp_obj, temp_loc); 
+    temp_obj->set_path(g_map.make_path(g_map_tile[0], g_map_tile[1], temp_obj, temp_loc)); 
+
+    g_map.describe();
 
     return SDL_APP_CONTINUE;
 }
@@ -146,7 +149,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     const Uint64 now = SDL_GetTicks();
     SDL_Texture *dst_texture = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, g_map_tile[0], g_map_tile[1]);    
     SDL_SetTextureScaleMode(dst_texture, SDL_SCALEMODE_NEAREST);
-    map<array<int, 2>, Object> objs = g_map.get_objects();
+    map<unsigned int, Object*> objs = g_map.get_objects();
 
     /* we'll have some color move around over a few seconds. */
     const float direction = ((now % 2000) >= 1000) ? 1.0f : -1.0f;
@@ -174,12 +177,14 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     
     if(!objs.empty())
     {
-        for(map<array<int, 2>, Object>::iterator objects_it = objs.begin(); objects_it != objs.end(); objects_it++)
+        for(map<unsigned int, Object*>::iterator objects_it = objs.begin(); objects_it != objs.end(); objects_it++)
         {
-            Object obj = objects_it->second;
-            SDL_FRect temp_rect = obj.rect();
-            
-            SDL_RenderTexture(g_renderer, obj.get_texture(), NULL, &temp_rect); 
+            Object* obj = objects_it->second;
+            SDL_FRect temp_rect = obj->rect();
+
+            g_map.update(obj); 
+
+            SDL_RenderTexture(g_renderer, obj->get_texture(), NULL, &temp_rect); 
         }
     }
 
@@ -196,7 +201,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     // Render the render target ooooo!
     dst_rect.x = dst_rect.y = 0;
-    dst_rect.w = dst_rect.h = g_viewport;
+    dst_rect.w =
+        dst_rect.h = g_height;
     src_rect.x = 0;
     src_rect.w = src_rect.h = TEXTURE_SIZE;
     SDL_SetRenderTarget(g_renderer, NULL);
@@ -366,7 +372,7 @@ void on_mouse_click(const int &x, const int &y, SDL_Texture* new_texture)
 {
     if(g_state == BUILD && g_mouse.event == SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
-        Object new_object;
+        Object* new_object = new Object();
         SDL_FRect new_rect;
         array<int, 2> id = {x, y};
         int w_half = new_texture->w / 2,
@@ -376,15 +382,17 @@ void on_mouse_click(const int &x, const int &y, SDL_Texture* new_texture)
         new_rect.y = y - h_half;
         new_rect.w = new_texture->w;
         new_rect.h = new_texture->h;
-        new_object.set_rect(new_rect);
-        new_object.set_texture(new_texture);
-
+        new_object->rect(new_rect);
+        new_object->set_texture(new_texture);
+        
+        g_map.describe();
         cout << "rect adding: " << new_rect.x << " " << new_rect.y << " " << new_rect.w << " " << new_rect.h << endl;
-
+            
         if(!g_map.place(new_object))
         {
             cout << "can't place that!" << endl;
         }
+        g_map.describe();
     }
 }
 
